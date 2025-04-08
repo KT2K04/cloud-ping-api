@@ -7,6 +7,7 @@ import (
     "os"
     "strconv"
     "time"
+    "bytes"
 )
 
 const (
@@ -35,14 +36,22 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
         }
     }
 
-    data := make([]byte, size)
-    w.Write(data)
+    w.Header().Set("Content-Length", strconv.Itoa(size))
+
+    chunk := bytes.Repeat([]byte("x"), 1024) // 1 KB
+    for written := 0; written < size; written += len(chunk) {
+        remaining := size - written
+        if remaining < len(chunk) {
+            w.Write(chunk[:remaining])
+        } else {
+            w.Write(chunk)
+        }
+    }
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Access-Control-Allow-Origin", "*")
 
-    // Limit the upload size to 50MB
     r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
     start := time.Now()
 
